@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { BookOpen, Edit, Save, AlertCircle, CheckCircle, Eye } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import { Save, AlertCircle, GraduationCap, User, Mail, BookOpen, CheckCircle, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import Layout from '../components/layout/Layout';
 
 const MyThesis = () => {
-  const { thesis, updateThesis } = useAuth();
-  const [isEditing, setIsEditing] = useState(!thesis);
-  const [showAdvisorList, setShowAdvisorList] = useState(false);
+  const { thesis, updateThesis, getAvailableAdvisors, getAdvisorById } = useAuth();
+  const navigate = useNavigate();
   
+  const [showAdvisorProfiles, setShowAdvisorProfiles] = useState(false);
   const [formData, setFormData] = useState({
     nombre: thesis?.nombre || '',
     ciclo: thesis?.ciclo || '',
@@ -19,57 +20,8 @@ const MyThesis = () => {
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-  // Datos simulados de asesores disponibles
-  const asesores = [
-    {
-      id: '1',
-      nombre: 'Dr. Carlos Mendoza Ríos',
-      especialidad: 'Desarrollo de Software y Bases de Datos',
-      correo: 'carlos.mendoza@tecsup.edu.pe',
-      descripcion: 'Especialista en aplicaciones web, móviles y gestión de bases de datos. 15 años de experiencia en la industria.',
-      tesisAsignadas: 4,
-      maxTesis: 7
-    },
-    {
-      id: '2',
-      nombre: 'Mg. Ana Patricia Vega',
-      especialidad: 'Inteligencia Artificial y Machine Learning',
-      correo: 'ana.vega@tecsup.edu.pe',
-      descripcion: 'Experta en IA, análisis de datos y algoritmos de aprendizaje automático. Doctora en Ciencias de la Computación.',
-      tesisAsignadas: 3,
-      maxTesis: 7
-    },
-    {
-      id: '3',
-      nombre: 'Ing. Roberto Silva Pérez',
-      especialidad: 'Seguridad Informática y Redes',
-      correo: 'roberto.silva@tecsup.edu.pe',
-      descripcion: 'Especialista en ciberseguridad, redes de computadoras y sistemas distribuidos. Certificaciones internacionales.',
-      tesisAsignadas: 6,
-      maxTesis: 7
-    },
-    {
-      id: '4',
-      nombre: 'Dr. Luis Fernando Castro',
-      especialidad: 'Sistemas de Información Empresariales',
-      correo: 'luis.castro@tecsup.edu.pe',
-      descripcion: 'Experto en ERP, CRM y sistemas de gestión empresarial. 20 años en consultoría tecnológica.',
-      tesisAsignadas: 2,
-      maxTesis: 7
-    },
-    {
-      id: '5',
-      nombre: 'Mg. Patricia Morales Díaz',
-      especialidad: 'UX/UI y Desarrollo Frontend',
-      correo: 'patricia.morales@tecsup.edu.pe',
-      descripcion: 'Diseñadora UX/UI senior, especialista en experiencia de usuario y interfaces modernas. Magíster en Diseño Digital.',
-      tesisAsignadas: 7,
-      maxTesis: 7
-    }
-  ];
-
-  // Filtrar solo asesores disponibles (menos de 7 tesis)
-  const asesoresDisponibles = asesores.filter(asesor => asesor.tesisAsignadas < asesor.maxTesis);
+  const ciclos = ['V Ciclo', 'IV Ciclo'];
+  const availableAdvisors = getAvailableAdvisors();
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -81,7 +33,7 @@ const MyThesis = () => {
     }
 
     if (!formData.ciclo) {
-      newErrors.ciclo = 'Debe seleccionar el ciclo';
+      newErrors.ciclo = 'Debe seleccionar un ciclo';
     }
 
     if (!formData.descripcion.trim()) {
@@ -103,12 +55,14 @@ const MyThesis = () => {
     
     if (validateForm()) {
       updateThesis(formData);
-      setIsEditing(false);
-      
-      const asesorSeleccionado = asesores.find(a => a.id === formData.asesorId);
-      toast.success('Información de tesis guardada exitosamente', {
-        description: `Asesor asignado: ${asesorSeleccionado?.nombre}`
+      const selectedAdvisor = getAdvisorById(formData.asesorId);
+      toast.success('¡Tesis registrada exitosamente!', {
+        description: `Asesor asignado: ${selectedAdvisor?.nombre}`
       });
+      
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } else {
       toast.error('Por favor, completa todos los campos obligatorios');
     }
@@ -122,287 +76,298 @@ const MyThesis = () => {
     }
   };
 
-  const selectedAdvisor = asesores.find(a => a.id === formData.asesorId);
+  if (thesis && !showAdvisorProfiles) {
+    const assignedAdvisor = getAdvisorById(thesis.asesorId);
+    
+    return (
+      <Layout>
+        <div className="p-6 max-w-4xl mx-auto">
+          {/* Información de tesis registrada */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Mi Tesis</h1>
+                  <p className="text-green-600 font-medium">Tesis registrada exitosamente</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Título de la Tesis</label>
+                  <p className="text-gray-900 font-medium">{thesis.nombre}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ciclo</label>
+                  <p className="text-gray-900">{thesis.ciclo}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <p className="text-gray-700 text-sm leading-relaxed">{thesis.descripcion}</p>
+                </div>
+              </div>
+
+              {assignedAdvisor && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+                    <User className="w-5 h-5 mr-2" />
+                    Mi Asesor Asignado
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="font-medium text-blue-900">{assignedAdvisor.nombre}</p>
+                    <p className="text-blue-700 text-sm">{assignedAdvisor.especialidad}</p>
+                    <p className="text-blue-600 text-sm flex items-center">
+                      <Mail className="w-4 h-4 mr-1" />
+                      {assignedAdvisor.correo}
+                    </p>
+                    <p className="text-blue-700 text-sm">{assignedAdvisor.descripcion}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex space-x-4">
+              <button
+                onClick={() => setShowAdvisorProfiles(true)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Editar Información
+              </button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="p-6 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Mi Tesis</h1>
-          <p className="text-gray-600">
-            {!thesis ? 'Registra la información de tu tesis o pretesis' : 'Gestiona la información de tu proyecto de tesis'}
-          </p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Mi Tesis</h1>
+              <p className="text-gray-600">Registra la información de tu tesis o pretesis</p>
+            </div>
+          </div>
         </div>
 
-        {!thesis && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div className="text-orange-800">
-                <p className="font-medium">Registro Pendiente</p>
-                <p className="text-sm mt-1">
-                  Debes registrar la información de tu tesis o pretesis para acceder a todas las funcionalidades del sistema.
-                </p>
-              </div>
+        {/* Alerta informativa */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div className="text-blue-800">
+              <p className="font-medium">Información de Tesis Requerida</p>
+              <p className="text-sm mt-1">
+                Para continuar con el proceso, necesitas completar la información de tu tesis y seleccionar un asesor disponible.
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Información actual de la tesis */}
-        {thesis && !isEditing && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Información Registrada</h2>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <Edit className="w-4 h-4" />
-                <span>Editar</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Título de la Tesis</h3>
-                <p className="text-gray-700">{thesis.nombre}</p>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulario de tesis */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Información de la Tesis</h2>
               
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Ciclo</h3>
-                <p className="text-gray-700">{thesis.ciclo}</p>
-              </div>
-              
-              <div className="md:col-span-2">
-                <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
-                <p className="text-gray-700">{thesis.descripcion}</p>
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Nombre de la tesis */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título de la Tesis/Pretesis *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Sistema de gestión de inventarios para PYMES"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.nombre ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    value={formData.nombre}
+                    onChange={(e) => handleInputChange('nombre', e.target.value)}
+                  />
+                  {errors.nombre && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{errors.nombre}</span>
+                    </p>
+                  )}
+                </div>
 
-              {selectedAdvisor && (
-                <div className="md:col-span-2">
-                  <h3 className="font-medium text-gray-900 mb-2">Asesor Asignado</h3>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
-                      <div>
-                        <h4 className="font-medium text-green-900">{selectedAdvisor.nombre}</h4>
-                        <p className="text-green-700 text-sm">{selectedAdvisor.especialidad}</p>
-                        <p className="text-green-600 text-sm">{selectedAdvisor.correo}</p>
-                      </div>
-                    </div>
+                {/* Ciclo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ciclo de Carrera *
+                  </label>
+                  <select
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.ciclo ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    value={formData.ciclo}
+                    onChange={(e) => handleInputChange('ciclo', e.target.value)}
+                  >
+                    <option value="">Selecciona el ciclo</option>
+                    {ciclos.map(ciclo => (
+                      <option key={ciclo} value={ciclo}>{ciclo}</option>
+                    ))}
+                  </select>
+                  {errors.ciclo && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{errors.ciclo}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Descripción */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción del Proyecto *
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Describe brevemente de qué trata tu proyecto, objetivos principales y alcance esperado..."
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
+                      errors.descripcion ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    value={formData.descripcion}
+                    onChange={(e) => handleInputChange('descripcion', e.target.value)}
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    {errors.descripcion ? (
+                      <p className="text-red-600 text-sm flex items-center space-x-1">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.descripcion}</span>
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 text-sm">Mínimo 50 caracteres</p>
+                    )}
+                    <p className="text-gray-400 text-sm">{formData.descripcion.length}/500</p>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Formulario de registro/edición */}
-        {isEditing && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center space-x-3 mb-6">
-              <BookOpen className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
-                {thesis ? 'Editar Información' : 'Registrar Tesis/Pretesis'}
-              </h2>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Nombre de la tesis */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Título de la Tesis/Pretesis *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Sistema de gestión de inventarios para pequeñas empresas"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                    errors.nombre ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  value={formData.nombre}
-                  onChange={(e) => handleInputChange('nombre', e.target.value)}
-                />
-                {errors.nombre && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{errors.nombre}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Ciclo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ciclo de Carrera *
-                </label>
-                <select
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                    errors.ciclo ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  value={formData.ciclo}
-                  onChange={(e) => handleInputChange('ciclo', e.target.value)}
-                >
-                  <option value="">Selecciona el ciclo</option>
-                  <option value="IV ciclo">IV ciclo</option>
-                  <option value="V ciclo">V ciclo</option>
-                </select>
-                {errors.ciclo && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{errors.ciclo}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción Breve *
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe brevemente el objetivo, alcance y tecnologías que planeas utilizar en tu proyecto..."
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
-                    errors.descripcion ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  value={formData.descripcion}
-                  onChange={(e) => handleInputChange('descripcion', e.target.value)}
-                />
-                <div className="flex justify-between items-center mt-1">
-                  {errors.descripcion ? (
-                    <p className="text-red-600 text-sm flex items-center space-x-1">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>{errors.descripcion}</span>
-                    </p>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Mínimo 50 caracteres</p>
-                  )}
-                  <span className="text-gray-500 text-sm">{formData.descripcion.length}/500</span>
-                </div>
-              </div>
-
-              {/* Selección de asesor */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                {/* Selección de asesor */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Seleccionar Asesor *
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvisorList(!showAdvisorList)}
-                    className="text-blue-600 text-sm hover:text-blue-800 flex items-center space-x-1"
+                  <select
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.asesorId ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    value={formData.asesorId}
+                    onChange={(e) => handleInputChange('asesorId', e.target.value)}
                   >
-                    <Eye className="w-4 h-4" />
-                    <span>Ver perfiles de asesores</span>
+                    <option value="">Selecciona un asesor disponible</option>
+                    {availableAdvisors.map(advisor => (
+                      <option key={advisor.id} value={advisor.id}>
+                        {advisor.nombre} - {advisor.especialidad} ({advisor.maxTesis - advisor.tesisAsignadas} cupos disponibles)
+                      </option>
+                    ))}
+                  </select>
+                  {errors.asesorId && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{errors.asesorId}</span>
+                    </p>
+                  )}
+                  <p className="text-gray-500 text-sm mt-1">
+                    Solo se muestran asesores con capacidad disponible
+                  </p>
+                </div>
+
+                {/* Botón de guardar */}
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Save className="w-5 h-5" />
+                    <span>Registrar Tesis y Asesor</span>
                   </button>
                 </div>
-                
-                <select
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                    errors.asesorId ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  value={formData.asesorId}
-                  onChange={(e) => handleInputChange('asesorId', e.target.value)}
+              </form>
+            </div>
+          </div>
+
+          {/* Panel de asesores disponibles */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Asesores Disponibles</h3>
+                <button
+                  onClick={() => setShowAdvisorProfiles(!showAdvisorProfiles)}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
                 >
-                  <option value="">Selecciona un asesor disponible</option>
-                  {asesoresDisponibles.map(asesor => (
-                    <option key={asesor.id} value={asesor.id}>
-                      {asesor.nombre} - {asesor.especialidad} ({asesor.tesisAsignadas}/{asesor.maxTesis} tesis)
-                    </option>
-                  ))}
-                </select>
-                {errors.asesorId && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center space-x-1">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{errors.asesorId}</span>
-                  </p>
-                )}
-                
-                <p className="text-gray-500 text-sm mt-1">
-                  Solo se muestran asesores con disponibilidad (menos de 7 tesis asignadas)
+                  <Eye className="w-4 h-4" />
+                  <span>{showAdvisorProfiles ? 'Ocultar' : 'Ver'} Perfiles</span>
+                </button>
+              </div>
+              
+              <div className="text-center py-4">
+                <BookOpen className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-600 text-sm">
+                  {availableAdvisors.length} asesores disponibles
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  Haz clic en "Ver Perfiles" para conocer más detalles
                 </p>
               </div>
-
-              {/* Botones */}
-              <div className="flex space-x-4 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Save className="w-5 h-5" />
-                  <span>Guardar Información</span>
-                </button>
-                
-                {thesis && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Lista de perfiles de asesores */}
-        {showAdvisorList && (
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Perfiles de Asesores Disponibles</h3>
-            
-            <div className="space-y-4">
-              {asesoresDisponibles.map(asesor => (
-                <div key={asesor.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{asesor.nombre}</h4>
-                      <p className="text-blue-600 text-sm font-medium">{asesor.especialidad}</p>
-                      <p className="text-gray-600 text-sm mt-1">{asesor.correo}</p>
-                      <p className="text-gray-700 text-sm mt-2">{asesor.descripcion}</p>
-                    </div>
-                    <div className="ml-4 text-right">
-                      <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                        Disponible
-                      </div>
-                      <p className="text-gray-500 text-xs mt-1">
-                        {asesor.tesisAsignadas}/{asesor.maxTesis} tesis
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
 
-            {asesores.filter(a => a.tesisAsignadas >= a.maxTesis).length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-md font-medium text-gray-700 mb-3">Asesores No Disponibles</h4>
-                <div className="space-y-2">
-                  {asesores.filter(a => a.tesisAsignadas >= a.maxTesis).map(asesor => (
-                    <div key={asesor.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="font-medium text-gray-700">{asesor.nombre}</h5>
-                          <p className="text-gray-600 text-sm">{asesor.especialidad}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
-                            No Disponible
-                          </div>
-                          <p className="text-gray-500 text-xs mt-1">
-                            {asesor.tesisAsignadas}/{asesor.maxTesis} tesis
-                          </p>
+            {/* Perfiles de asesores */}
+            {showAdvisorProfiles && (
+              <div className="space-y-4">
+                {availableAdvisors.map((advisor) => (
+                  <div key={advisor.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{advisor.nombre}</h4>
+                        <p className="text-blue-600 text-sm font-medium">{advisor.especialidad}</p>
+                        <p className="text-gray-600 text-xs mt-1 flex items-center">
+                          <Mail className="w-3 h-3 mr-1" />
+                          {advisor.correo}
+                        </p>
+                        <p className="text-gray-700 text-xs mt-2 leading-relaxed">
+                          {advisor.descripcion}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-green-600 text-xs font-medium">
+                            {advisor.maxTesis - advisor.tesisAsignadas} cupos disponibles
+                          </span>
+                          <button
+                            onClick={() => handleInputChange('asesorId', advisor.id)}
+                            className={`text-xs px-2 py-1 rounded ${
+                              formData.asesorId === advisor.id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {formData.asesorId === advisor.id ? 'Seleccionado' : 'Seleccionar'}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );
